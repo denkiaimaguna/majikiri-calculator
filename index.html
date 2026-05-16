@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>間仕切り仕込み材料拾い出し</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 16px 16px 100px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 18px;
+      color: #1a202c;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 20px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+
+    /* ========== 設定カード ========== */
+    .settings-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 0 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 0;
+      border-bottom: 1px solid #f0f4f8;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-label {
+      font-size: 14px;
+      color: #2d3748;
+      font-weight: 500;
+    }
+
+    .settings-unit {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-left: 2px;
+    }
+
+    .settings-input {
+      width: 64px;
+      text-align: center;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #2d3748;
+      background: #f7fafc;
+      -webkit-appearance: none;
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: #4299e1;
+      background: #ebf8ff;
+    }
+
+    /* ========== 通常トグルスイッチ（マグネット用） ========== */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-label-text {
+      font-size: 13px;
+      color: #718096;
+    }
+
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+
+    .toggle input { display: none; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e0;
+      border-radius: 28px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle input:checked + .toggle-slider { background: #48bb78; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    /* ========== PF管拾い出し計算ヘッダー ========== */
+    .pf-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+
+    .pf-section-header .section-label { margin: 0; }
+
+    /* ========== iOSコントロールセンター風ボタン ========== */
+    .cc-btn {
+      position: relative;
+      width: 52px;
+      height: 30px;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+      background: #b0b8c4;
+      transition: background 0.22s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .cc-btn::before {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      background: #fff;
+      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), background 0.22s;
+    }
+
+    .cc-btn.on {
+      background: #30d158;
+    }
+
+    .cc-btn.on::before {
+      background: #fff;
+      transform: translateX(22px);
+    }
+
+    /* ========== PF設定の折りたたみ ========== */
+    .pf-settings-body {
+      overflow: hidden;
+      transition: max-height 0.28s ease, opacity 0.22s ease;
+      max-height: 200px;
+      opacity: 1;
+    }
+
+    .pf-settings-body.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    /* ========== 器具カード ========== */
+    .instrument-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border-left: 4px solid #4299e1;
+    }
+
+    .instrument-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .instrument-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4a5568;
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #fc8181;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+
+    .btn-delete:active { background: #fff5f5; }
+
+    .row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #a0aec0;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .select-field {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #2d3748;
+      background: #f7fafc;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a0aec0' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+    }
+
+    .select-field:focus {
+      outline: none;
+      border-color: #4299e1;
+      background-color: #ebf8ff;
+    }
+
+    .row-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .num-field { text-align: center; }
+
+    .num-input {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 4px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #2d3748;
+      text-align: center;
+      background: #f7fafc;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .num-input:focus {
+      outline: none;
+      border-color: #4299e1;
+      background: #ebf8ff;
+    }
+
+    /* ========== 追加ボタン ========== */
+    .btn-add {
+      width: 100%;
+      padding: 16px;
+      background: #4299e1;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-add:active { background: #3182ce; }
+
+    /* ========== 結果カード ========== */
+    .result-section { margin-top: 8px; }
+
+    .result-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .result-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f4f8;
+    }
+
+    .result-row:last-child { border-bottom: none; }
+
+    .result-item-name {
+      font-size: 14px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .result-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #2d3748;
+    }
+
+    .result-unit {
+      font-size: 13px;
+      font-weight: 600;
+      color: #718096;
+      margin-left: 2px;
+    }
+
+    .result-sub {
+      font-size: 11px;
+      color: #a0aec0;
+      display: block;
+      text-align: right;
+      margin-top: -4px;
+    }
+
+    .result-highlight { color: #2b6cb0; }
+
+    /* ========== 固定下部バー ========== */
+    .fixed-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a202c;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.2);
+    }
+
+    .fixed-bar-item { text-align: center; }
+
+    .fixed-bar-label {
+      font-size: 10px;
+      color: #a0aec0;
+      font-weight: 600;
+    }
+
+    .fixed-bar-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      transition: color 0.2s;
+    }
+
+    .fixed-bar-unit {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-left: 2px;
+    }
+
+    .fixed-bar-divider {
+      width: 1px;
+      height: 36px;
+      background: #4a5568;
+    }
+
+    /* ========== 空状態 ========== */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #a0aec0;
+      font-size: 13px;
+    }
+
+    /* ========== 表示制御 ========== */
+    .magnet-row { display: flex; }
+    .magnet-row.hidden { display: none; }
+    .pf-result-section { display: block; }
+    .pf-result-section.hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>間仕切り仕込み材料拾い出し</h1>
+  <p class="subtitle">器具カードを追加 → 自動計算</p>
+
+  <!-- ========== PF管拾い出し計算 ========== -->
+  <div class="pf-section-header">
+    <div class="section-label">PF管拾い出し計算</div>
+    <button class="cc-btn on" id="pf-calc-toggle" aria-label="PF計算ON/OFF"></button>
+  </div>
+  <div class="settings-card">
+    <div class="pf-settings-body" id="pf-settings-body">
+      <div class="settings-row">
+        <span class="settings-label"><span class="settings-unit">（1カ所あたりの）</span>PF16 平均使用長<span class="settings-unit">（m）</span></span>
+        <input class="settings-input" type="number" id="pf16-avg" value="5" min="1" max="99" inputmode="decimal">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label"><span class="settings-unit">（1カ所あたりの）</span>PF22 平均使用長<span class="settings-unit">（m）</span></span>
+        <input class="settings-input" type="number" id="pf22-avg" value="5" min="1" max="99" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 器具カードエリア ========== -->
+  <div class="section-label">器具カード</div>
+  <div id="cards-container">
+    <div class="empty-state" id="empty-msg">「器具カードを追加」で入力開始</div>
+  </div>
+
+  <button class="btn-add" id="btn-add-card">
+    <span style="font-size:20px">＋</span> 器具カードを追加
+  </button>
+
+  <!-- ========== マグネット設定（結果直前） ========== -->
+  <div class="settings-card" style="margin-top:0; margin-bottom:10px;">
+    <div class="settings-row">
+      <span class="settings-label">ボックス探知マグネット</span>
+      <div class="toggle-wrap">
+        <span class="toggle-label-text" id="magnet-label">OFF</span>
+        <label class="toggle">
+          <input type="checkbox" id="magnet-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 計算結果 ========== -->
+  <div class="section-label">計算結果</div>
+  <div class="result-section">
+
+    <!-- PF材料 -->
+    <div class="result-card pf-result-section" id="pf-result-card">
+      <div class="result-card-title">PF 材料</div>
+      <div class="result-row">
+        <span class="result-item-name">PF16</span>
+        <div style="text-align:right">
+          <span class="result-value result-highlight" id="r-pf16-rolls">0</span><span class="result-unit">巻</span>
+          <span class="result-sub" id="r-pf16-total">総 0m</span>
+        </div>
+      </div>
+      <div class="result-row">
+        <span class="result-item-name">PF22</span>
+        <div style="text-align:right">
+          <span class="result-value result-highlight" id="r-pf22-rolls">0</span><span class="result-unit">巻</span>
+          <span class="result-sub" id="r-pf22-total">総 0m</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボックス系 -->
+    <div class="result-card">
+      <div class="result-card-title">ボックス系</div>
+      <div class="result-row">
+        <span class="result-item-name">4×4 BOX</span>
+        <div><span class="result-value" id="r-box">0</span><span class="result-unit">個</span></div>
+      </div>
+      <div class="result-row">
+        <span class="result-item-name">1連 塗代カバー</span>
+        <div><span class="result-value" id="r-cover1">0</span><span class="result-unit">枚</span></div>
+      </div>
+      <div class="result-row">
+        <span class="result-item-name">2連 塗代カバー</span>
+        <div><span class="result-value" id="r-cover2">0</span><span class="result-unit">枚</span></div>
+      </div>
+    </div>
+
+    <!-- 配管部材 -->
+    <div class="result-card pf-result-section" id="pf-connector-card">
+      <div class="result-card-title">配管部材</div>
+      <div class="result-row">
+        <span class="result-item-name">PF16 コネクタ</span>
+        <div><span class="result-value" id="r-pf16-con">0</span><span class="result-unit">個</span></div>
+      </div>
+      <div class="result-row">
+        <span class="result-item-name">PF22 コネクタ</span>
+        <div><span class="result-value" id="r-pf22-con">0</span><span class="result-unit">個</span></div>
+      </div>
+    </div>
+
+    <!-- その他 -->
+    <div class="result-card">
+      <div class="result-card-title">その他</div>
+      <div class="result-row">
+        <span class="result-item-name">ボックス取付金物</span>
+        <div><span class="result-value" id="r-bracket">0</span><span class="result-unit">個</span></div>
+      </div>
+      <div class="result-row magnet-row hidden" id="magnet-result-row">
+        <span class="result-item-name">ボックス探知マグネット</span>
+        <div><span class="result-value" id="r-magnet">0</span><span class="result-unit">個</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== 固定下部バー ========== -->
+<div class="fixed-bar">
+  <div class="fixed-bar-item">
+    <div class="fixed-bar-label">PF16</div>
+    <div><span class="fixed-bar-value" id="bar-pf16">0</span><span class="fixed-bar-unit">巻</span></div>
+  </div>
+  <div class="fixed-bar-divider"></div>
+  <div class="fixed-bar-item">
+    <div class="fixed-bar-label">PF22</div>
+    <div><span class="fixed-bar-value" id="bar-pf22">0</span><span class="fixed-bar-unit">巻</span></div>
+  </div>
+  <div class="fixed-bar-divider"></div>
+  <div class="fixed-bar-item">
+    <div class="fixed-bar-label">4×4 BOX</div>
+    <div><span class="fixed-bar-value" id="bar-box">0</span><span class="fixed-bar-unit">個</span></div>
+  </div>
+</div>
+
+<script>
+  const container = document.getElementById('cards-container');
+  const emptyMsg  = document.getElementById('empty-msg');
+
+  const INSTRUMENT_TYPES = ['コンセント', 'スイッチ', 'LAN', 'TV', 'マルチ', 'その他'];
+  const REN_TYPES = ['1連', '2連'];
+
+  // ===== カード番号の振り直し =====
+  function renumberCards() {
+    container.querySelectorAll('.instrument-card').forEach((card, i) => {
+      card.querySelector('.instrument-card-title').textContent = `器具 ${i + 1}`;
+    });
+  }
+
+  function createCard() {
+    const card = document.createElement('div');
+    card.className = 'instrument-card';
+
+    card.innerHTML = `
+      <div class="instrument-card-header">
+        <span class="instrument-card-title">器具</span>
+        <button class="btn-delete" aria-label="削除">✕</button>
+      </div>
+      <div class="row-2col">
+        <div>
+          <div class="field-label">器具種類</div>
+          <select class="select-field" data-field="type">
+            ${INSTRUMENT_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="field-label">ぬりしろカバー</div>
+          <select class="select-field" data-field="ren">
+            ${REN_TYPES.map(r => `<option value="${r}">${r}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="row-3col">
+        <div class="num-field">
+          <div class="field-label">箇所数</div>
+          <input class="num-input" type="number" data-field="count" value="1" min="0" inputmode="numeric">
+        </div>
+        <div class="num-field">
+          <div class="field-label">PF16／立ち上げ本数</div>
+          <input class="num-input" type="number" data-field="pf16" value="1" min="0" inputmode="numeric">
+        </div>
+        <div class="num-field">
+          <div class="field-label">PF22／立ち上げ本数</div>
+          <input class="num-input" type="number" data-field="pf22" value="0" min="0" inputmode="numeric">
+        </div>
+      </div>
+    `;
+
+    card.querySelector('.btn-delete').addEventListener('click', () => {
+      card.remove();
+      renumberCards();
+      updateEmptyState();
+      calculate();
+    });
+
+    card.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('input', calculate);
+      el.addEventListener('change', calculate);
+    });
+
+    return card;
+  }
+
+  function updateEmptyState() {
+    const hasCards = container.querySelectorAll('.instrument-card').length > 0;
+    emptyMsg.style.display = hasCards ? 'none' : 'block';
+  }
+
+  document.getElementById('btn-add-card').addEventListener('click', () => {
+    const card = createCard();
+    container.appendChild(card);
+    renumberCards();
+    updateEmptyState();
+    calculate();
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  // ===== マグネットトグル =====
+  const magnetToggle    = document.getElementById('magnet-toggle');
+  const magnetLabel     = document.getElementById('magnet-label');
+  const magnetResultRow = document.getElementById('magnet-result-row');
+
+  magnetToggle.addEventListener('change', () => {
+    magnetLabel.textContent = magnetToggle.checked ? 'ON' : 'OFF';
+    magnetResultRow.classList.toggle('hidden', !magnetToggle.checked);
+    calculate();
+  });
+
+  // ===== PF計算ON/OFFトグル（CC風） =====
+  let pfCalcEnabled = true;
+  const pfCalcBtn     = document.getElementById('pf-calc-toggle');
+  const pfSettingsBody = document.getElementById('pf-settings-body');
+  const pfResultCards  = document.querySelectorAll('.pf-result-section');
+  const barPf16        = document.getElementById('bar-pf16');
+  const barPf22        = document.getElementById('bar-pf22');
+
+  pfCalcBtn.addEventListener('click', () => {
+    pfCalcEnabled = !pfCalcEnabled;
+    pfCalcBtn.classList.toggle('on', pfCalcEnabled);
+    pfSettingsBody.classList.toggle('collapsed', !pfCalcEnabled);
+    pfResultCards.forEach(el => el.classList.toggle('hidden', !pfCalcEnabled));
+    barPf16.style.color = pfCalcEnabled ? '#fff' : '#4a5568';
+    barPf22.style.color = pfCalcEnabled ? '#fff' : '#4a5568';
+    calculate();
+  });
+
+  document.getElementById('pf16-avg').addEventListener('input', calculate);
+  document.getElementById('pf22-avg').addEventListener('input', calculate);
+
+  // ===== 計算 =====
+  function getNum(el) {
+    const v = parseFloat(el.value);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+
+  function calculate() {
+    const pf16Avg = pfCalcEnabled ? getNum(document.getElementById('pf16-avg')) : 0;
+    const pf22Avg = pfCalcEnabled ? getNum(document.getElementById('pf22-avg')) : 0;
+    const useMagnet = magnetToggle.checked;
+
+    let totalCount = 0, cover1 = 0, cover2 = 0;
+    let pf16Total = 0, pf22Total = 0, pf16Con = 0, pf22Con = 0;
+
+    container.querySelectorAll('.instrument-card').forEach(card => {
+      const ren   = card.querySelector('[data-field="ren"]').value;
+      const count = getNum(card.querySelector('[data-field="count"]'));
+      const pf16  = getNum(card.querySelector('[data-field="pf16"]'));
+      const pf22  = getNum(card.querySelector('[data-field="pf22"]'));
+
+      totalCount += count;
+      if (ren === '1連') cover1 += count;
+      if (ren === '2連') cover2 += count;
+
+      pf16Total += count * pf16 * pf16Avg;
+      pf22Total += count * pf22 * pf22Avg;
+      pf16Con   += count * pf16;
+      pf22Con   += count * pf22;
+    });
+
+    const pf16Rolls = Math.ceil(pf16Total / 50);
+    const pf22Rolls = Math.ceil(pf22Total / 50);
+
+    document.getElementById('r-pf16-rolls').textContent = pfCalcEnabled ? pf16Rolls : '-';
+    document.getElementById('r-pf22-rolls').textContent = pfCalcEnabled ? pf22Rolls : '-';
+    document.getElementById('r-pf16-total').textContent = pfCalcEnabled ? `総 ${pf16Total.toFixed(1)}m` : '';
+    document.getElementById('r-pf22-total').textContent = pfCalcEnabled ? `総 ${pf22Total.toFixed(1)}m` : '';
+    barPf16.textContent = pfCalcEnabled ? pf16Rolls : '-';
+    barPf22.textContent = pfCalcEnabled ? pf22Rolls : '-';
+
+    document.getElementById('r-box').textContent     = totalCount;
+    document.getElementById('r-cover1').textContent  = cover1;
+    document.getElementById('r-cover2').textContent  = cover2;
+    document.getElementById('r-pf16-con').textContent = pf16Con;
+    document.getElementById('r-pf22-con').textContent = pf22Con;
+    document.getElementById('r-bracket').textContent  = totalCount;
+    document.getElementById('r-magnet').textContent   = useMagnet ? totalCount : 0;
+    document.getElementById('bar-box').textContent    = totalCount;
+  }
+
+  calculate();
+</script>
+</body>
+</html>
