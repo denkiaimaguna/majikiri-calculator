@@ -525,6 +525,10 @@
         <span class="result-item-name">2連 塗代カバー</span>
         <div><span class="result-value" id="r-cover2">0</span><span class="result-unit">枚</span></div>
       </div>
+      <div class="result-row">
+        <span class="result-item-name">3連 塗代カバー</span>
+        <div><span class="result-value" id="r-cover3">0</span><span class="result-unit">枚</span></div>
+      </div>
     </div>
 
     <!-- 配管部材 -->
@@ -579,7 +583,7 @@
   const emptyMsg  = document.getElementById('empty-msg');
 
   const INSTRUMENT_TYPES = ['コンセント', 'スイッチ', 'LAN', 'TV', 'マルチ', 'その他'];
-  const REN_TYPES = ['1連', '2連'];
+  const REN_TYPES = ['1連', '2連', '3連'];
 
   // ===== カード番号の振り直し =====
   function renumberCards() {
@@ -699,7 +703,7 @@
     const pf22Avg = pfCalcEnabled ? getNum(document.getElementById('pf22-avg')) : 0;
     const useMagnet = magnetToggle.checked;
 
-    let totalCount = 0, cover1 = 0, cover2 = 0;
+    let totalCount = 0, cover1 = 0, cover2 = 0, cover3 = 0;
     let pf16Total = 0, pf22Total = 0, pf16Con = 0, pf22Con = 0;
 
     container.querySelectorAll('.instrument-card').forEach(card => {
@@ -711,6 +715,7 @@
       totalCount += count;
       if (ren === '1連') cover1 += count;
       if (ren === '2連') cover2 += count;
+      if (ren === '3連') cover3 += count;
 
       pf16Total += count * pf16 * pf16Avg;
       pf22Total += count * pf22 * pf22Avg;
@@ -731,6 +736,7 @@
     document.getElementById('r-box').textContent     = totalCount;
     document.getElementById('r-cover1').textContent  = cover1;
     document.getElementById('r-cover2').textContent  = cover2;
+    document.getElementById('r-cover3').textContent  = cover3;
     document.getElementById('r-pf16-con').textContent = pf16Con;
     document.getElementById('r-pf22-con').textContent = pf22Con;
     document.getElementById('r-bracket').textContent  = totalCount;
